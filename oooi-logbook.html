@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.18.0</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.18.1</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -2074,7 +2074,7 @@ function renderLog(filter){
     return;
   }
   const q=(filter||document.getElementById('legSearch').value||'').toUpperCase().trim();
-  let filtered=entries;
+  let filtered=entries.filter(function(e){return !e._deleted;});
   if(q){
     filtered=entries.filter(function(L){
       return (L.flt||'').toUpperCase().includes(q)||
@@ -2174,8 +2174,10 @@ function renderLog(filter){
     if(sdel) sdel.onclick=function(e){
       e.stopPropagation();
       if(navigator.vibrate) navigator.vibrate(30);
-      entries=entries.filter(function(x){return x.id!=el.dataset.id;});
+      var toDel=entries.find(function(x){return x.id==el.dataset.id;});
+      if(toDel){toDel._deleted=true;toDel._mod=Date.now();}
       store.set('oooi_entries',entries);
+      saveToCloud();
       renderLog(); updateFMA();
     };
 
@@ -2335,7 +2337,8 @@ function renderLog(filter){
     const del=el.querySelector('[data-act="del"]');
     del.onclick=()=>{
       if(del.textContent!=='CONFIRM DELETE'){ del.textContent='CONFIRM DELETE'; return; }
-      entries=entries.filter(x=>x.id!=el.dataset.id);
+      var toDel2=entries.find(function(x){return x.id==el.dataset.id;});
+      if(toDel2){toDel2._deleted=true;toDel2._mod=Date.now();}
       store.set('oooi_entries',entries);
       renderLog(); updateFMA();
     };
@@ -3507,7 +3510,7 @@ keyChangeBtn.onclick=()=>{
 };
 
 function updateFMA(){
-  const blk=entries.reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
+  const blk=activeEntries.reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
   document.getElementById('fmaHrs').textContent=fmtMin(blk);
 }
 updateFMA();

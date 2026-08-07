@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.17.3</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.18.0</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -552,6 +552,7 @@
       </div>
     </div>
 
+    <button class="btn ghost" id="recalcNightBtn" style="margin-top:12px;border-color:#1a4a6a;color:var(--cyn)">🌙 RECALCULATE NIGHT TIME</button>
     <button class="btn ghost" id="setToggle" style="margin-top:20px">SETTINGS</button>
     <div class="set" id="setPanel" style="display:none;margin-top:6px;padding-bottom:40px">
 
@@ -674,6 +675,124 @@ function fmtMin(m){
   return Math.floor(m/60)+':' + String(m%60).padStart(2,'0');
 }
 function fmtDec(m){ return m==null?'':(m/60).toFixed(1); }
+
+/* ================= NIGHT TIME CALCULATOR ================= */
+var AIRPORT_COORDS={
+  // Canada
+  YUL:[45.47,-73.74],YQB:[46.79,-71.39],YYZ:[43.68,-79.63],YOW:[45.32,-75.67],
+  YHZ:[44.88,-63.51],YEG:[53.31,-113.58],YYC:[51.13,-114.02],YVR:[49.19,-123.18],
+  YWG:[49.91,-97.24],YQM:[46.11,-64.68],YDF:[49.21,-57.39],YQX:[48.94,-54.57],
+  YFC:[45.87,-66.54],YSJ:[45.32,-65.89],YQR:[50.43,-104.67],
+  // Caribbean/Mexico
+  PUJ:[18.57,-68.37],CUN:[21.04,-86.87],MBJ:[18.50,-77.91],VRA:[23.03,-81.44],
+  HOG:[20.79,-76.32],SDQ:[18.43,-69.67],POP:[19.76,-70.57],SXM:[18.04,-63.11],
+  AUA:[12.50,-70.02],BGI:[13.07,-59.49],UVF:[13.73,-60.95],POS:[10.60,-61.34],
+  GCM:[19.29,-81.36],NAS:[25.04,-77.47],SJU:[18.44,-66.00],
+  // USA
+  FLL:[26.07,-80.15],MCO:[28.43,-81.31],SFB:[28.78,-81.24],TPA:[27.98,-82.53],
+  MIA:[25.80,-80.29],JFK:[40.64,-73.78],EWR:[40.69,-74.17],LAX:[33.94,-118.41],
+  LAS:[36.08,-115.15],ATL:[33.64,-84.43],ORD:[41.97,-87.91],BOS:[42.36,-71.01],
+  DFW:[32.90,-97.04],DEN:[39.86,-104.67],SEA:[47.45,-122.31],SFO:[37.62,-122.38],
+  PHL:[39.87,-75.24],
+  // Europe
+  CDG:[49.01,2.55],ORY:[48.72,2.36],LGW:[51.15,-0.18],LHR:[51.47,-0.46],
+  FCO:[41.80,12.25],LIS:[38.77,-9.13],ATH:[37.94,23.94],BCN:[41.30,2.08],
+  MAD:[40.47,-3.57],AMS:[52.31,4.76],FRA:[50.03,8.57],MUC:[48.35,11.79],
+  NTE:[47.15,-1.61],NCE:[43.66,7.21],MRS:[43.44,5.22],BRU:[50.90,4.48],
+  DUB:[53.42,-6.27],EDI:[55.95,-3.37],MAN:[53.35,-2.27],ZRH:[47.46,8.55],
+  VCE:[45.50,12.35],MXP:[45.63,8.72],PMI:[39.55,2.74],OPO:[41.24,-8.68],
+  PRG:[50.10,14.26],BUD:[47.43,19.26],
+  // Africa/Middle East
+  CMN:[33.37,-7.59],AGA:[30.33,-9.41],RAK:[31.61,-8.04],TNG:[35.73,-5.92],
+  // Asia
+  DXB:[25.25,55.36],DOH:[25.26,51.61],
+  // ICAO versions
+  CYUL:[45.47,-73.74],CYQB:[46.79,-71.39],CYYZ:[43.68,-79.63],CYOW:[45.32,-75.67],
+  CYHZ:[44.88,-63.51],CYEG:[53.31,-113.58],CYYC:[51.13,-114.02],CYVR:[49.19,-123.18],
+  LFPG:[49.01,2.55],EGKK:[51.15,-0.18],LIRF:[41.80,12.25],LPPT:[38.77,-9.13],
+  LGAV:[37.94,23.94],MDPC:[18.57,-68.37],MMUN:[21.04,-86.87],MKJS:[18.50,-77.91],
+  MUVR:[23.03,-81.44],KFLL:[26.07,-80.15],KMCO:[28.43,-81.31],KJFK:[40.64,-73.78]
+};
+
+function calcSunEvent(lat,lon,date,rise){
+  // simplified NOAA solar calculator
+  var d=new Date(date+'T12:00:00Z');
+  var n=Math.floor(d.getTime()/86400000)+0.5-2440587.5; // Julian day from J2000
+  var Jstar=n-lon/360;
+  var M=(357.5291+0.98560028*Jstar)%360;
+  var Mr=M*Math.PI/180;
+  var C=1.9148*Math.sin(Mr)+0.0200*Math.sin(2*Mr)+0.0003*Math.sin(3*Mr);
+  var lambda=(M+C+180+102.9372)%360;
+  var lr=lambda*Math.PI/180;
+  var decl=Math.asin(Math.sin(lr)*Math.sin(23.4397*Math.PI/180));
+  var latr=lat*Math.PI/180;
+  // civil twilight: sun 6 degrees below horizon for CARs night
+  var h0=-6*Math.PI/180;
+  var cosHA=(Math.sin(h0)-Math.sin(latr)*Math.sin(decl))/(Math.cos(latr)*Math.cos(decl));
+  if(cosHA>1) return rise?0:1440; // never rises (polar night)
+  if(cosHA<-1) return rise?0:1440; // never sets (midnight sun)
+  var HA=Math.acos(cosHA)*180/Math.PI;
+  // transit time in minutes UTC
+  var Jtransit=Jstar+0.0053*Math.sin(Mr)-0.0069*Math.sin(2*lr);
+  var transit=(Jtransit%1)*1440;
+  if(transit<0) transit+=1440;
+  var offset=HA/360*1440;
+  return rise?transit-offset:transit+offset;
+}
+
+function calcNightMinutes(from,to,date,offTime,onTime){
+  var depCoord=AIRPORT_COORDS[(from||'').toUpperCase()];
+  var arrCoord=AIRPORT_COORDS[(to||'').toUpperCase()];
+  if(!depCoord||!arrCoord||!date||!offTime||!onTime) return null;
+  var offMin=parseInt(offTime.substring(0,2))*60+parseInt(offTime.substring(2,4));
+  var onMin=parseInt(onTime.substring(0,2))*60+parseInt(onTime.substring(2,4));
+  if(onMin<=offMin) onMin+=1440; // crosses midnight
+  var totalFlt=onMin-offMin;
+  if(totalFlt<=0||totalFlt>1200) return null; // sanity check (max 20h flight)
+
+  // sample every 15 minutes along the route
+  var nightMin=0;
+  var steps=Math.max(1,Math.floor(totalFlt/15));
+  for(var i=0;i<=steps;i++){
+    var frac=i/steps;
+    var t=offMin+frac*totalFlt;
+    var tDay=t%1440;
+    // interpolate position
+    var lat=depCoord[0]+(arrCoord[0]-depCoord[0])*frac;
+    var lon=depCoord[1]+(arrCoord[1]-depCoord[1])*frac;
+    // figure out the date for this sample point
+    var sampleDate=date;
+    if(t>=1440){
+      var d2=new Date(date+'T00:00:00Z');
+      d2.setUTCDate(d2.getUTCDate()+1);
+      sampleDate=d2.toISOString().slice(0,10);
+    }
+    var dawn=calcSunEvent(lat,lon,sampleDate,true);
+    var dusk=calcSunEvent(lat,lon,sampleDate,false);
+    var isNight=(tDay<dawn||tDay>dusk);
+    if(isNight) nightMin+=totalFlt/steps;
+  }
+  return Math.round(nightMin);
+}
+
+function recalcAllNight(){
+  var updated=0;
+  entries.forEach(function(e){
+    var nm=calcNightMinutes(e.from,e.to,e.date,e.off,e.on);
+    if(nm!=null){
+      e.night=fmtMin(nm);
+      e._mod=Date.now();
+      updated++;
+    }
+  });
+  if(updated){
+    store.set('oooi_entries',entries);
+    updateFMA();
+    renderLog();
+  }
+  return updated;
+}
+
 /* ================= AIRPORT CODE NORMALIZER ================= */
 const ICAO2IATA={
   // Canada
@@ -3309,6 +3428,22 @@ document.getElementById('pdfExportBtn').onclick=async function(){
 document.getElementById('importToggle').onclick=function(){
   var p=document.getElementById('importPanel');
   p.style.display=p.style.display==='none'?'block':'none';
+};
+
+document.getElementById('recalcNightBtn').onclick=function(){
+  var btn=this;
+  btn.textContent='CALCULATING...';
+  setTimeout(function(){
+    var count=recalcAllNight();
+    btn.textContent='UPDATED '+count+' LEGS';
+    btn.style.borderColor='#1a7a3a';
+    btn.style.color='var(--grn)';
+    setTimeout(function(){
+      btn.textContent='\uD83C\uDF19 RECALCULATE NIGHT TIME';
+      btn.style.borderColor='#1a4a6a';
+      btn.style.color='var(--cyn)';
+    },3000);
+  },100);
 };
 
 setToggle.onclick=()=>{

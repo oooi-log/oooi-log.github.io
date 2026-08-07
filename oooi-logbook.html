@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.18.4</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.18.5</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -592,10 +592,10 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <button class="stile-btn" id="pushBtn" style="border-color:#1a7a3a;color:var(--grn)">
-          <div style="font-size:16px;margin-bottom:2px">&#11205;</div>PUSH
+          ☁️⬆ PUSH
         </button>
         <button class="stile-btn" id="pullBtn" style="border-color:#1a4a6a;color:var(--cyn)">
-          <div style="font-size:16px;margin-bottom:2px">&#11206;</div>PULL
+          ☁️⬇ PULL
         </button>
       </div>
 
@@ -3161,7 +3161,7 @@ setPfPm.onchange=function(){
 };
 
 document.getElementById('pushBtn').onclick=function(){
-  if(!firebaseReady||!currentUser){this.textContent='NOT SIGNED IN';var b=this;setTimeout(function(){b.innerHTML='<div style="font-size:16px;margin-bottom:2px">&#11205;</div>PUSH';},2000);return;}
+  if(!firebaseReady||!currentUser){this.textContent='NOT SIGNED IN';var b=this;setTimeout(function(){b.innerHTML='☁️⬆ PUSH';},2000);return;}
   this.textContent='PUSHING...';
   var btn=this;
   fbDb.collection('users').doc(currentUser.uid).set({
@@ -3172,15 +3172,15 @@ document.getElementById('pushBtn').onclick=function(){
     btn.innerHTML='&#10003; PUSHED';
     btn.style.color='var(--grn)';
     syncStatus('PUSHED');
-    setTimeout(function(){btn.innerHTML='<div style="font-size:16px;margin-bottom:2px">&#11205;</div>PUSH';syncStatus('');},2000);
+    setTimeout(function(){btn.innerHTML='☁️⬆ PUSH';syncStatus('');},2000);
   }).catch(function(e){
     btn.textContent='ERROR';
-    setTimeout(function(){btn.innerHTML='<div style="font-size:16px;margin-bottom:2px">&#11205;</div>PUSH';},2000);
+    setTimeout(function(){btn.innerHTML='☁️⬆ PUSH';},2000);
   });
 };
 
 document.getElementById('pullBtn').onclick=function(){
-  if(!firebaseReady||!currentUser){this.textContent='NOT SIGNED IN';var b=this;setTimeout(function(){b.innerHTML='<div style="font-size:16px;margin-bottom:2px">&#11206;</div>PULL';},2000);return;}
+  if(!firebaseReady||!currentUser){this.textContent='NOT SIGNED IN';var b=this;setTimeout(function(){b.innerHTML='☁️⬇ PULL';},2000);return;}
   this.textContent='PULLING...';
   var btn=this;
   fbDb.collection('users').doc(currentUser.uid).get().then(function(snap){
@@ -3195,10 +3195,10 @@ document.getElementById('pullBtn').onclick=function(){
     }else{
       btn.textContent='NO CLOUD DATA';
     }
-    setTimeout(function(){btn.innerHTML='<div style="font-size:16px;margin-bottom:2px">&#11206;</div>PULL';btn.style.color='var(--cyn)';syncStatus('');},2000);
+    setTimeout(function(){btn.innerHTML='☁️⬇ PULL';btn.style.color='var(--cyn)';syncStatus('');},2000);
   }).catch(function(e){
     btn.textContent='ERROR';
-    setTimeout(function(){btn.innerHTML='<div style="font-size:16px;margin-bottom:2px">&#11206;</div>PULL';},2000);
+    setTimeout(function(){btn.innerHTML='☁️⬇ PULL';},2000);
   });
 };
 

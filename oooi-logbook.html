@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.17.2</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.17.3</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -3102,6 +3102,13 @@ document.getElementById('compareBtn').onclick=async function(){
 
         var html='<div style="font-family:var(--mono);font-size:10px;color:var(--amb);letter-spacing:2px;margin-bottom:8px">'+catLabels[cat]+' — '+diffs.length+' DIFFERENCE'+(diffs.length!==1?'S':'')+'</div>';
 
+        html+='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:8px">Which device has the correct data?</div>';
+        html+='<div style="display:flex;gap:8px;margin-bottom:14px">';
+        html+='<button id="useAllLocal" style="flex:1;background:rgba(125,211,252,0.1);border:1.5px solid var(--cyn);color:var(--cyn);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.5px;padding:12px;border-radius:8px;cursor:pointer">USE THIS DEVICE</button>';
+        html+='<button id="useAllCloud" style="flex:1;background:rgba(240,180,41,0.1);border:1.5px solid var(--amb);color:var(--amb);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.5px;padding:12px;border-radius:8px;cursor:pointer">USE CLOUD</button>';
+        html+='</div>';
+        html+='<div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:10px;text-align:center">OR RESOLVE INDIVIDUALLY BELOW</div>';
+
         diffs.forEach(function(d,idx){
           html+='<div class="cmp-card" data-idx="'+idx+'" style="background:#161b22;border:1px solid var(--amb);border-radius:8px;padding:10px;margin-bottom:8px">';
           html+='<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--grn);font-weight:700;font-size:13px">'+(d.leg.flt||'???')+'</span><span style="color:var(--dim);font-size:11px">'+(d.leg.from||'')+' → '+(d.leg.to||'')+' &middot; '+(d.leg.date||'')+'</span></div>';
@@ -3160,6 +3167,44 @@ document.getElementById('compareBtn').onclick=async function(){
         });
         if(panel.querySelector('#cmpBack')) panel.querySelector('#cmpBack').onclick=function(){document.getElementById('compareBtn').click();};
         if(panel.querySelector('#cmpClose')) panel.querySelector('#cmpClose').onclick=function(){panel.style.display='none';};
+
+        // USE ALL buttons
+        if(panel.querySelector('#useAllLocal')){
+          panel.querySelector('#useAllLocal').onclick=function(){
+            // local wins - just push local to cloud
+            diffs.forEach(function(d){d.leg._mod=Date.now();});
+            store.set('oooi_entries',entries);
+            saveToCloud();
+            updateFMA();renderLog();
+            panel.querySelectorAll('.cmp-card').forEach(function(c){
+              c.style.borderColor='#1a7a3a';
+              c.innerHTML='<div style="text-align:center;color:var(--grn);font-size:11px;padding:8px;font-family:var(--mono)">&#10003; KEEPING LOCAL</div>';
+            });
+            this.textContent='\u2713 DONE';this.disabled=true;
+            panel.querySelector('#useAllCloud').style.display='none';
+            panel.querySelector('#useAllLocal').parentNode.nextElementSibling.style.display='none';
+          };
+          panel.querySelector('#useAllCloud').onclick=function(){
+            // cloud wins - update local with cloud values
+            diffs.forEach(function(d){
+              fields.forEach(function(k){
+                var cv=String(d.cloud[k]||'').trim();
+                if(cv) d.leg[k]=d.cloud[k];
+              });
+              d.leg._mod=Date.now();
+            });
+            store.set('oooi_entries',entries);
+            saveToCloud();
+            updateFMA();renderLog();
+            panel.querySelectorAll('.cmp-card').forEach(function(c){
+              c.style.borderColor='#1a7a3a';
+              c.innerHTML='<div style="text-align:center;color:var(--grn);font-size:11px;padding:8px;font-family:var(--mono)">&#10003; USING CLOUD</div>';
+            });
+            this.textContent='\u2713 DONE';this.disabled=true;
+            panel.querySelector('#useAllLocal').style.display='none';
+            this.parentNode.nextElementSibling.style.display='none';
+          };
+        }
       }catch(e){
         panel.innerHTML='<div style="text-align:center;color:var(--red);font-family:var(--mono);font-size:11px;padding:12px">ERROR: '+e.message+'</div>';
       }

@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.19.5</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.19.6</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -3040,20 +3040,21 @@ document.getElementById('legSearch').oninput=function(){renderLog();};
 /* ================= TOTALS ================= */
 function sumRange(daysBack){
   const cutoff=new Date(Date.now()-daysBack*86400000).toISOString().slice(0,10);
-  return entries.filter(e=>e.date>=cutoff).reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
+  return entries.filter(e=>!e._deleted&&e.date>=cutoff).reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
 }
 function renderTotals(){
-  const blk=entries.reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
+  var ae=entries.filter(function(e){return !e._deleted;});
+  const blk=ae.reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
   const nowM=new Date().toISOString().slice(0,7), nowY=new Date().toISOString().slice(0,4);
-  const mo=entries.filter(e=>(e.date||'').slice(0,7)===nowM).reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
-  const yr=entries.filter(e=>(e.date||'').slice(0,4)===nowY).reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
-  const ldg=entries.reduce((s,e)=>s+(+e.ldg||0),0);
+  const mo=ae.filter(e=>(e.date||'').slice(0,7)===nowM).reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
+  const yr=ae.filter(e=>(e.date||'').slice(0,4)===nowY).reduce((s,e)=>s+(diffMin(e.out,e.inn)||0),0);
+  const ldg=ae.reduce((s,e)=>s+(+e.ldg||0),0);
   document.getElementById('tBlock').textContent=fmtMin(blk);
   document.getElementById('tMonth').textContent=fmtMin(mo);
   document.getElementById('tYear').textContent=fmtMin(yr);
   document.getElementById('tLdg').textContent=ldg;
   // PIC time: manual field, parse H:MM or decimal
-  const pic=entries.reduce((s,e)=>{
+  const pic=ae.reduce((s,e)=>{
     const v=String(e.pic||'').trim();
     if(!v) return s;
     if(v.includes(':')){const p=v.split(':'); return s+(+p[0])*60+(+p[1]||0);}
@@ -3061,7 +3062,7 @@ function renderTotals(){
   },0);
   document.getElementById('tPic').textContent=fmtMin(pic);
   // Night time: auto-calculated or manual override
-  const nightTotal=entries.reduce((s,e)=>{
+  const nightTotal=ae.reduce((s,e)=>{
     const v=String(e.night||'').trim();
     if(!v) return s;
     if(v.includes(':')){const p=v.split(':'); return s+(+p[0])*60+(+p[1]||0);}

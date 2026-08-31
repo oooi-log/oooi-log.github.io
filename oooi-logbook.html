@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.19.4</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.19.5</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -836,7 +836,10 @@ function dupKeys(e){
   // add ±1 day variants for UTC/local date tolerance
   if(e.date){ dates.push(dateShift(e.date,1)); dates.push(dateShift(e.date,-1)); }
   dates.forEach(dt=>{
-    if(flt) keys.push(dt+'|'+flt);
+    // require date+flight+OUT for tighter match (handles same flt# on consecutive days)
+    if(flt && e.out) keys.push(dt+'|'+flt+'|'+(e.out||''));
+    // fallback: date+flight only if no OUT time yet (schedule imports)
+    if(flt && !e.out) keys.push(dt+'|'+flt);
     if(e.out && from && to) keys.push(dt+'|'+(e.out||'')+'|'+from+'|'+to);
   });
   if(!keys.length) keys.push((e.date||'')+'|'+(e.out||'')+'|'+from+'|'+to);

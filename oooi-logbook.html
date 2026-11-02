@@ -1212,40 +1212,36 @@ async function aiVisionExtract(dataUrls, cfg){
     lastOCRText+='--- '+cfg.label+' ('+model+') PHOTO '+(i+1)+' RESPONSE ---\n'+(txt||'(empty response)')+'\n';
     document.getElementById('ocrDbgBtn').style.display='block';
     const m=String(txt).match(/\{[\s\S]*\}/);
-    let needsRetry=false;
     if(m){
       try{
         const parsed=JSON.parse(m[0]);
         (parsed.flights||[]).forEach(f=>{
           const L=mapAIFlight(f);
-          if(!L.out||!L.off||!L.on||!L.inn){ needsRetry=true; return; }
-          if(!legPlausibleAI(L)){
-            needsRetry=true; return;
+          if(L.out&&L.off&&L.on&&L.inn&&!legPlausibleAI(L)){
+            L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false;
           }
           legs.push(L);
         });
-        if(!(parsed.flights||[]).length) needsRetry=true;
-      }catch(e){ needsRetry=true; }
-    }else{ needsRetry=true; }
-    // Auto-retry: ask model to look again more carefully
-    if(needsRetry && !cfg._retried){
+      }catch(e){}
+    }
+    // Auto-retry only if first pass got ZERO legs (total parse failure)
+    if(!legs.length && !cfg._retried){
       cfg._retried=true;
-      status(cfg.label+' - RETRYING WITH ENHANCED READ...');
+      status(cfg.label+' - RE-READING...');
       try{
         const r2=await fetch(cfg.url,{
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
           body:JSON.stringify({
             model,
-            temperature:0,
+            temperature:0.1,
             max_tokens:2000,
             messages:[
+              {role:'system',content:'You are an expert aviation OCR system. Read every character on the MCDU screen with extreme precision. Return only valid JSON.'},
               {role:'user',content:[
-                {type:'text',text:oooiPromptText(1)},
+                {type:'text',text:'I need you to read this Airbus MCDU screen very carefully, character by character.\n\n'+oooiPromptText(1)},
                 {type:'image_url',image_url:{url:croppedUrls[i]}}
-              ]},
-              {role:'assistant',content:txt||'{}'},
-              {role:'user',content:'Some fields are missing or the times seem wrong. Look at the MCDU screen again very carefully. Read each character one by one. Remember: OUT and IN are on the LEFT column, OFF and ON are on the RIGHT column. BLOCK and FLIGHT are durations — do NOT confuse them with times. Return the corrected JSON.'}
+              ]}
             ]
           })
         });
@@ -1258,31 +1254,16 @@ async function aiVisionExtract(dataUrls, cfg){
           if(m2){
             try{
               const p2=JSON.parse(m2[0]);
-              const retryLegs=[];
               (p2.flights||[]).forEach(f=>{
                 const L=mapAIFlight(f);
-                if(L.out&&L.off&&L.on&&L.inn){
-                  if(!legPlausibleAI(L)){ L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false; }
-                  retryLegs.push(L);
+                if(L.out&&L.off&&L.on&&L.inn&&!legPlausibleAI(L)){
+                  L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false;
                 }
+                legs.push(L);
               });
-              if(retryLegs.length){ legs.length=0; retryLegs.forEach(l=>legs.push(l)); }
             }catch(e){}
           }
         }
-      }catch(e){}
-    }
-    // If still no legs from AI, mark implausible ones from first pass
-    if(!legs.length && m){
-      try{
-        const parsed=JSON.parse(m[0]);
-        (parsed.flights||[]).forEach(f=>{
-          const L=mapAIFlight(f);
-          if(L.out||L.off||L.on||L.inn){
-            if(!legPlausibleAI(L)){ L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false; }
-            legs.push(L);
-          }
-        });
       }catch(e){}
     }
     // If JSON failed entirely, try the local MCDU text parser on whatever was returned

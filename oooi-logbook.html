@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.5</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.6</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -1949,7 +1949,7 @@ function renderReview(){
 }
 
 function ticketHTML(L,i){
-  const f=(k,lbl,ph)=>'<div class="tfield"><label>'+lbl+'</label><input data-i="'+i+'" data-k="'+k+'" value="'+esc(L[k]==null?'':L[k])+'" placeholder="'+(ph||'')+'"></div>';
+  const f=(k,lbl,ph)=>'<div class="tfield"><label>'+lbl+'</label><input data-i="'+i+'" data-k="'+k+'" value="'+esc(L[k]==null?'':L[k])+'" placeholder="'+(ph||'')+'"'+(ph==='HHMM'?' inputmode="numeric" pattern="[0-9]*" maxlength="4"':'')+'></div>';
   let badge='VERIFY &amp; CORRECT';
   if(L._v===true) badge='<span style="color:#1a7a3a;font-weight:700">&#10003; OCR VERIFIED</span>';
   else if(L._v===false) badge='<span style="color:#a05a00;font-weight:700">&#9888; VERIFY TIMES</span>';
@@ -2129,10 +2129,10 @@ function renderLog(filter){
           '<div class="f"><label>DATE</label><input data-k="date" value="'+esc(L.date)+'"></div>'+
         '</div>'+
         '<div class="drow">'+
-          '<div class="f"><label>OUT</label><input data-k="out" value="'+esc(L.out)+'" placeholder="HHMM"></div>'+
-          '<div class="f"><label>OFF</label><input data-k="off" value="'+esc(L.off)+'" placeholder="HHMM"></div>'+
-          '<div class="f"><label>ON</label><input data-k="on" value="'+esc(L.on)+'" placeholder="HHMM"></div>'+
-          '<div class="f"><label>IN</label><input data-k="inn" value="'+esc(L.inn)+'" placeholder="HHMM"></div>'+
+          '<div class="f"><label>OUT</label><input data-k="out" value="'+esc(L.out)+'" placeholder="HHMM" inputmode="numeric" pattern="[0-9]*" maxlength="4"></div>'+
+          '<div class="f"><label>OFF</label><input data-k="off" value="'+esc(L.off)+'" placeholder="HHMM" inputmode="numeric" pattern="[0-9]*" maxlength="4"></div>'+
+          '<div class="f"><label>ON</label><input data-k="on" value="'+esc(L.on)+'" placeholder="HHMM" inputmode="numeric" pattern="[0-9]*" maxlength="4"></div>'+
+          '<div class="f"><label>IN</label><input data-k="inn" value="'+esc(L.inn)+'" placeholder="HHMM" inputmode="numeric" pattern="[0-9]*" maxlength="4"></div>'+
         '</div>'+
         '<div class="drow tcalc-row" style="font-family:var(--mono);font-size:13px;gap:14px;color:var(--dim)">'+
           '<div><span style="font-size:9px;letter-spacing:1.5px">BLOCK</span><b class="legBlk" style="color:var(--grn);font-size:16px;display:block">'+fmtMin(blk)+'</b></div>'+

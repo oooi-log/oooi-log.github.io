@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.3</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.4</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -654,7 +654,7 @@ const store = (()=>{
 
 let entries = store.get('oooi_entries', []);
 let settings = store.get('oooi_settings', { type:'A321', key:'', groqKey:'', geminiKey:'', role:'FO' });
-let pendingImgs = [];        // 1568px jpeg dataURLs (AI path + thumbnails), max 15/batch
+let pendingImgs = [];        // 1024px jpeg dataURLs (AI path + thumbnails), max 15/batch
 let pendingSrcs = [];        // native-resolution source blobs (free OCR path)
 let pendingLegs = [];        // parsed legs awaiting confirmation
 
@@ -998,7 +998,7 @@ async function downscale(file){
       throw new Error('UNSUPPORTED IMAGE FORMAT ('+(file.type||'unknown')+'). Workaround: take a screenshot of the photo and upload the screenshot (it will be a standard format).');
     }
   }
-  const MAX=1568;
+  const MAX=1024;
   let w=img.width,h=img.height;
   if(Math.max(w,h)>MAX){ const s=MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
   const c=document.createElement('canvas'); c.width=w; c.height=h;
@@ -1354,7 +1354,7 @@ function preprocessForOCR(src){
       try{
         const NW=img.width, NH=img.height;
         // Stage 1: detect the MCDU screen on a small copy (fast)
-        const ds=Math.min(1, 1568/Math.max(NW,NH));
+        const ds=Math.min(1, 1024/Math.max(NW,NH));
         const dw=Math.max(1,Math.round(NW*ds)), dh=Math.max(1,Math.round(NH*ds));
         const cd=document.createElement('canvas'); cd.width=dw; cd.height=dh;
         const cdx=cd.getContext('2d');

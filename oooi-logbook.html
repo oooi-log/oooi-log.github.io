@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.1</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.2</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -1027,7 +1027,10 @@ readBtn.onclick=async ()=>{
           ? await geminiExtract(pendingImgs)          // Gemini (free vision AI)
           : await groqExtract(pendingImgs);           // Groq (free vision AI)
       }catch(aiErr){
+        console.error('AI VISION ERROR:', aiErr);
         window.__aiFailMsg = aiErr.message;
+        lastOCRText += '\n--- AI ERROR ---\n' + aiErr.message + '\n' + (aiErr.stack||'') + '\n';
+        document.getElementById('ocrDbgBtn').style.display='block';
         legs = await ocrExtract(pendingImgs, pendingSrcs);
       }
     }else{
@@ -1045,7 +1048,7 @@ readBtn.onclick=async ()=>{
     pendingLegs = legs;
     renderReview();
     if(window.__aiFailMsg){
-      status('NOTE: GEMINI FAILED ('+window.__aiFailMsg+') - USED FREE OCR INSTEAD', true);
+      status('GEMINI FAILED: '+window.__aiFailMsg+' — TAP VIEW OCR TEXT FOR DETAILS', true);
       window.__aiFailMsg=null;
     }else{
       status('');
@@ -1090,8 +1093,6 @@ async function aiVisionExtract(dataUrls, cfg){
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
           body:JSON.stringify({
             model,
-            temperature:0,
-            max_tokens:2000,
             messages:[{role:'user',content:[
               {type:'text',text:oooiPromptText(1)},
               {type:'image_url',image_url:{url:dataUrls[i]}}
@@ -1147,9 +1148,10 @@ async function aiVisionExtract(dataUrls, cfg){
   return legs;
 }
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_FALLBACK_MODELS=['gemini-3.8-flash','gemini-3-flash-preview','gemini-3.6-flash','gemini-3.5-flash-lite'];
+const GEMINI_FALLBACK_MODELS=['gemini-3.8-flash','gemini-3.6-flash','gemini-3-flash-preview'];
 function geminiModels(){
-  return (settings.geminiModels&&settings.geminiModels.length)?settings.geminiModels:GEMINI_FALLBACK_MODELS;
+  // Always use curated fallback list — auto-discovered lists go stale
+  return GEMINI_FALLBACK_MODELS;
 }
 async function discoverGeminiModels(){
   const r=await fetch('https://generativelanguage.googleapis.com/v1beta/openai/models',{

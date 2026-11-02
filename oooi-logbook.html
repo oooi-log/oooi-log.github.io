@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.4</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.5</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -1003,7 +1003,7 @@ async function downscale(file){
   if(Math.max(w,h)>MAX){ const s=MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   c.getContext('2d').drawImage(img,0,0,w,h);
-  return {url:c.toDataURL('image/jpeg',0.85), src};
+  return {url:c.toDataURL('image/jpeg',0.7), src};
 }
 
 function status(msg,err){
@@ -1147,7 +1147,7 @@ async function aiVisionExtract(dataUrls, cfg){
   return legs;
 }
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_FALLBACK_MODELS=['gemini-3.8-flash','gemini-3.6-flash','gemini-3-flash-preview'];
+const GEMINI_FALLBACK_MODELS=['gemini-3.5-flash-lite','gemini-3.8-flash','gemini-3.6-flash'];
 function geminiModels(){
   // Always use curated fallback list — auto-discovered lists go stale
   return GEMINI_FALLBACK_MODELS;

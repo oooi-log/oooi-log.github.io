@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.0</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.1</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -1116,11 +1116,6 @@ async function aiVisionExtract(dataUrls, cfg){
       // 404/400: model renamed - try next. 429: rate limited - next model has its own quota
       if(!(resp.status===404||resp.status===400||resp.status===429)) throw new Error(lastErr);
       if(resp.status===429 && mi===cfg.models.length-1){
-        // all models throttled: one patient retry on the first model
-        status(cfg.label+' RATE LIMITED - RETRYING IN 5S...');
-        await new Promise(r=>setTimeout(r,5000));
-        mi=-1; model=cfg.models[0];
-        if(!aiRetried){ aiRetried=true; continue; }
         throw new Error(lastErr);
       }
     }

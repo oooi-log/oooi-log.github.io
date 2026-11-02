@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.25.1</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.25.2</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -1171,9 +1171,7 @@ async function aiVisionExtract(dataUrls, cfg){
             model,
             temperature:0,
             max_tokens:2000,
-            messages:[
-              {role:'system',content:'You are an expert aviation OCR system specialized in reading Airbus MCDU screens. You read every character with extreme precision and always return valid JSON.'},
-              {role:'user',content:[
+            messages:[{role:'user',content:[
               {type:'text',text:oooiPromptText(1)},
               {type:'image_url',image_url:{url:croppedUrls[i]}}
             ]}]
@@ -1237,9 +1235,8 @@ async function aiVisionExtract(dataUrls, cfg){
             temperature:0.1,
             max_tokens:2000,
             messages:[
-              {role:'system',content:'You are an expert aviation OCR system. Read every character on the MCDU screen with extreme precision. Return only valid JSON.'},
               {role:'user',content:[
-                {type:'text',text:'I need you to read this Airbus MCDU screen very carefully, character by character.\n\n'+oooiPromptText(1)},
+                {type:'text',text:oooiPromptText(1)},
                 {type:'image_url',image_url:{url:croppedUrls[i]}}
               ]}
             ]

@@ -1093,10 +1093,9 @@ async function aiVisionExtract(dataUrls, cfg){
             model,
             temperature:0,
             max_tokens:2000,
-            response_format:{type:'json_object'},
             messages:[{role:'user',content:[
               {type:'text',text:oooiPromptText(1)},
-              {type:'image_url',image_url:{url:dataUrls[i],detail:'high'}}
+              {type:'image_url',image_url:{url:dataUrls[i]}}
             ]}]
           })
         });
@@ -1160,11 +1159,10 @@ async function aiVisionExtract(dataUrls, cfg){
             model,
             temperature:0,
             max_tokens:2000,
-            response_format:{type:'json_object'},
             messages:[
               {role:'user',content:[
                 {type:'text',text:oooiPromptText(1)},
-                {type:'image_url',image_url:{url:dataUrls[i],detail:'high'}}
+                {type:'image_url',image_url:{url:dataUrls[i]}}
               ]},
               {role:'assistant',content:txt||'{}'},
               {role:'user',content:'Some fields are missing or the times seem wrong. Look at the MCDU screen again very carefully. Read each character one by one. Remember: OUT and IN are on the LEFT column, OFF and ON are on the RIGHT column. BLOCK and FLIGHT are durations — do NOT confuse them with times. Return the corrected JSON.'}

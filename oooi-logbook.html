@@ -487,7 +487,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.23.0</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.24.0</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -1057,7 +1057,7 @@ readBtn.onclick=async ()=>{
 };
 
 function oooiPromptText(n){
-  return 'This is a photo of an Airbus MCDU screen showing the "AOC OOOI STATUS" page. Read the screen carefully.\n\nThe layout has two columns:\nLeft column: FLIGHT ID (like TS0399), OUT time (like 1932Z), IN time (like 0046Z), BLOCK duration\nRight column: ORIG/DEST airports (like MDPC/CYUL), DATE (like 30JUL26), OFF time (like 2004Z), ON time (like 0025Z), FLIGHT duration\n\nIMPORTANT:\n- OUT, OFF, ON, IN are the four OOOI times. Extract these.\n- BLOCK and FLIGHT are durations, NOT times. Do NOT use them as OOOI times.\n- The "RETURN" line shows ----Z (dashes). Ignore it.\n- The UTC clock is the current time. Ignore it.\n- Times end with Z (Zulu/UTC). Remove the Z and return 4 digits only.\n- Dates are formatted like 30JUL26 = 2026-07-30.\n\nRespond with ONLY valid JSON, no markdown fences, no commentary:\n{"flights":[{"date":"YYYY-MM-DD","flight_number":"TS0399","from":"MDPC","to":"CYUL","out":"1932","off":"2004","on":"0025","in":"0046"}]}\n\nUse null for anything unreadable. Double-check: OUT to IN should match BLOCK duration, OFF to ON should match FLIGHT duration.';
+  return 'Photo of an Airbus MCDU "AOC OOOI STATUS" page. Read every character on screen precisely.\n\nLAYOUT (two columns):\nLeft: FLIGHT ID (e.g. TS0399), OUT time, IN time, BLOCK duration\nRight: ORIG/DEST airports (e.g. MDPC/CYUL), DATE (e.g. 30JUL26), OFF time, ON time, FLIGHT duration\n\nRULES:\n1. OUT, OFF, ON, IN are the four OOOI times — extract these as 4-digit HHMM.\n2. BLOCK and FLIGHT are durations, NOT OOOI times. Never use them as OUT/OFF/ON/IN.\n3. RETURN line shows ----Z (dashes). Ignore it completely.\n4. UTC clock at bottom-right is current time. Ignore it.\n5. Times end with Z. Strip the Z, return 4 digits only.\n6. Dates: 30JUL26 → 2026-07-30. Two-digit year means 20xx.\n7. ICAO airports are 4 letters (e.g. CYUL not YUL). Keep all 4.\n8. If the screen shows a previous flight above the current one, include BOTH flights.\n\nCOMMON MISREADS — be careful:\n- 0 vs O, 1 vs I, 8 vs B, 5 vs S — context tells you: times are digits, airports are letters.\n- The green MCDU font makes some characters ambiguous. Use logic: times must be valid 0000-2359, airports are ICAO codes.\n\nVALIDATION before responding:\n- OUT must be before OFF (taxi out takes 5-60 min)\n- OFF must be before ON (flight takes 30 min to 10 hours)\n- ON must be before IN (taxi in takes 2-30 min)\n- Times may cross midnight (e.g. OUT 2330, IN 0215 is valid)\n- Computed OUT→IN should roughly equal BLOCK duration shown\n- Computed OFF→ON should roughly equal FLIGHT duration shown\n- If validation fails, re-read the screen more carefully.\n\nRespond with ONLY valid JSON:\n{"flights":[{"date":"YYYY-MM-DD","flight_number":"TS0399","from":"MDPC","to":"CYUL","out":"1932","off":"2004","on":"0025","in":"0046"}]}\n\nUse null for anything truly unreadable.';
 }
 function mapAIFlight(f){
   return {
@@ -1093,9 +1093,10 @@ async function aiVisionExtract(dataUrls, cfg){
             model,
             temperature:0,
             max_tokens:2000,
+            response_format:{type:'json_object'},
             messages:[{role:'user',content:[
               {type:'text',text:oooiPromptText(1)},
-              {type:'image_url',image_url:{url:dataUrls[i]}}
+              {type:'image_url',image_url:{url:dataUrls[i],detail:'high'}}
             ]}]
           })
         });
@@ -1132,19 +1133,81 @@ async function aiVisionExtract(dataUrls, cfg){
     lastOCRText+='--- '+cfg.label+' ('+model+') PHOTO '+(i+1)+' RESPONSE ---\n'+(txt||'(empty response)')+'\n';
     document.getElementById('ocrDbgBtn').style.display='block';
     const m=String(txt).match(/\{[\s\S]*\}/);
+    let needsRetry=false;
     if(m){
       try{
         const parsed=JSON.parse(m[0]);
         (parsed.flights||[]).forEach(f=>{
           const L=mapAIFlight(f);
-          if(L.out&&L.off&&L.on&&L.inn&&!legPlausibleAI(L)){
-            L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false;
+          if(!L.out||!L.off||!L.on||!L.inn){ needsRetry=true; return; }
+          if(!legPlausibleAI(L)){
+            needsRetry=true; return;
           }
           legs.push(L);
         });
+        if(!(parsed.flights||[]).length) needsRetry=true;
+      }catch(e){ needsRetry=true; }
+    }else{ needsRetry=true; }
+    // Auto-retry: ask model to look again more carefully
+    if(needsRetry && !cfg._retried){
+      cfg._retried=true;
+      status(cfg.label+' - RETRYING WITH ENHANCED READ...');
+      try{
+        const r2=await fetch(cfg.url,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+          body:JSON.stringify({
+            model,
+            temperature:0,
+            max_tokens:2000,
+            response_format:{type:'json_object'},
+            messages:[
+              {role:'user',content:[
+                {type:'text',text:oooiPromptText(1)},
+                {type:'image_url',image_url:{url:dataUrls[i],detail:'high'}}
+              ]},
+              {role:'assistant',content:txt||'{}'},
+              {role:'user',content:'Some fields are missing or the times seem wrong. Look at the MCDU screen again very carefully. Read each character one by one. Remember: OUT and IN are on the LEFT column, OFF and ON are on the RIGHT column. BLOCK and FLIGHT are durations — do NOT confuse them with times. Return the corrected JSON.'}
+            ]
+          })
+        });
+        if(r2.ok){
+          const d2=await r2.json();
+          let txt2=(d2.choices&&d2.choices[0]&&d2.choices[0].message&&d2.choices[0].message.content)||'';
+          if(Array.isArray(txt2)) txt2=txt2.map(p=>p.text||'').join('');
+          lastOCRText+='--- '+cfg.label+' RETRY ('+model+') ---\n'+(txt2||'(empty)')+'\n';
+          const m2=String(txt2).match(/\{[\s\S]*\}/);
+          if(m2){
+            try{
+              const p2=JSON.parse(m2[0]);
+              const retryLegs=[];
+              (p2.flights||[]).forEach(f=>{
+                const L=mapAIFlight(f);
+                if(L.out&&L.off&&L.on&&L.inn){
+                  if(!legPlausibleAI(L)){ L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false; }
+                  retryLegs.push(L);
+                }
+              });
+              if(retryLegs.length){ legs.length=0; retryLegs.forEach(l=>legs.push(l)); }
+            }catch(e){}
+          }
+        }
       }catch(e){}
     }
-    // If JSON failed, try the local MCDU text parser on whatever Gemini returned
+    // If still no legs from AI, mark implausible ones from first pass
+    if(!legs.length && m){
+      try{
+        const parsed=JSON.parse(m[0]);
+        (parsed.flights||[]).forEach(f=>{
+          const L=mapAIFlight(f);
+          if(L.out||L.off||L.on||L.inn){
+            if(!legPlausibleAI(L)){ L.remarks='CHECK TIMES VS PRINTOUT'; L._v=false; }
+            legs.push(L);
+          }
+        });
+      }catch(e){}
+    }
+    // If JSON failed entirely, try the local MCDU text parser on whatever was returned
     if(!legs.length && txt.length>20){
       const textLegs=parseOOOIText(txt);
       if(textLegs.length) textLegs.forEach(l=>legs.push(l));

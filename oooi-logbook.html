@@ -316,13 +316,6 @@
     padding:12px 14px;margin-bottom:8px;cursor:pointer;
     position:relative;overflow:hidden;transition:transform .2s;
   }
-  .leg .swipe-del{
-    position:absolute;right:0;top:0;bottom:0;width:80px;
-    background:var(--red);color:#fff;font-family:var(--mono);font-size:10px;
-    letter-spacing:1.5px;display:none;align-items:center;justify-content:center;
-    cursor:pointer;z-index:2;
-  }
-  .leg.swiped .swipe-del{display:flex}
   .leg .top{display:flex;justify-content:space-between;font-family:var(--mono)}
   .leg .flt{color:var(--wht);font-weight:700}
   .leg .pair{color:var(--cyn)}
@@ -487,7 +480,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.7</div>
+    <div style="text-align:center;margin-top:24px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px">v1.26.8</div>
   </section>
 
   <!-- ============ LOGBOOK ============ -->
@@ -2114,7 +2107,6 @@ function renderLog(filter){
     }
     const blk=diffMin(L.out,L.inn), air=diffMin(L.off,L.on);
     html+='<div class="leg" data-id="'+L.id+'">'+
-      '<div class="swipe-del">DELETE</div>'+
       '<div class="top"><span class="flt">'+(esc(L.flt)||'&mdash;')+'</span><span class="pair">'+esc(L.from)+'&rarr;'+esc(L.to)+'</span><span class="blk">'+fmtMin(blk)+'</span></div>'+
       '<div class="bot"><span>'+esc(L.date)+'</span><span class="oooi">'+(L.out||'----')+' → '+(L.inn||'----')+'</span></div>'+
       '<div class="detail">'+
@@ -2158,45 +2150,8 @@ function renderLog(filter){
   list.innerHTML=html;
 
   list.querySelectorAll('.leg').forEach(el=>{
-    // swipe to delete
-    let startX=0,curX=0,swiping=false;
-    el.addEventListener('touchstart',function(e){
-      if(el.classList.contains('open')) return;
-      startX=e.touches[0].clientX;curX=startX;swiping=true;
-    },{passive:true});
-    el.addEventListener('touchmove',function(e){
-      if(!swiping) return;
-      curX=e.touches[0].clientX;
-      var dx=startX-curX;
-      if(dx>10) el.style.transform='translateX('+Math.max(-80,-dx)+'px)';
-      else el.style.transform='';
-    },{passive:true});
-    el.addEventListener('touchend',function(){
-      if(!swiping) return;
-      swiping=false;
-      if(startX-curX>60){
-        el.style.transform='translateX(-80px)';
-        el.classList.add('swiped');
-      }else{
-        el.style.transform='';
-        el.classList.remove('swiped');
-      }
-    });
-    // swipe delete button click
-    var sdel=el.querySelector('.swipe-del');
-    if(sdel) sdel.onclick=function(e){
-      e.stopPropagation();
-      if(navigator.vibrate) navigator.vibrate(30);
-      var toDel=entries.find(function(x){return x.id==el.dataset.id;});
-      if(toDel){toDel._deleted=true;toDel._mod=Date.now();}
-      store.set('oooi_entries',entries);
-      saveToCloud();
-      renderLog(); updateFMA();
-    };
-
     el.addEventListener('click',e=>{
-      if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON'||e.target.classList.contains('swipe-del')) return;
-      if(Math.abs(startX-curX)>10) return; // was a swipe not a tap
+      if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON') return;
       el.classList.toggle('open');
     });
     const pending={};
